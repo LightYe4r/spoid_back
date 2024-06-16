@@ -22,4 +22,6 @@ from component.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('insert-data/', InsertDataAPIView.as_view(), name='insert-data'),
+    path('filtered-data/', FilteredDataAPIView.as_view(), name='filtered-data'),
+    path('detail-data/', DetailDataAPIView.as_view(), name='detail-data'),
 ]
