@@ -16,10 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from component.views import dataAPIView
+from component.views import *
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('data/', dataAPIView.as_view()),
+    path('insert-data/', InsertDataAPIView.as_view(), name='insert-data'),
 ]
