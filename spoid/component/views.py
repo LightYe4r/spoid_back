@@ -4,10 +4,9 @@ from rest_framework import status
 import boto3
 
 dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-2')
-table = dynamodb.Table('PC_Components')
+table = dynamodb.Table('Components')
 
 class InsertDataAPIView(APIView):
-
     def post(self, request):
         data_to_insert = request.data  # POST 요청으로 넘어온 데이터를 가져옵니다.
 
@@ -27,7 +26,6 @@ class InsertDataAPIView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class FilteredDataAPIView(APIView):
-
     def post(self, request):
         data = request.data
         categories = data.get('categories', [])
@@ -41,24 +39,28 @@ class FilteredDataAPIView(APIView):
         new_last_evaluated_keys = {}
         try:
             for category in categories:
-                query_kwargs = {
-                    'KeyConditionExpression': "#category = :category",
+                pk_prefix = f'{category}#'  # 각 카테고리에 해당하는 PK prefix
+
+                # 모든 항목을 불러오는 scan 사용
+                scan_kwargs = {
+                    'FilterExpression': "begins_with(#pk, :pk_prefix)",
                     'ExpressionAttributeNames': {
-                        '#category': 'Category'
+                        '#pk': 'Type#ComponentID'
                     },
                     'ExpressionAttributeValues': {
-                        ':category': category
+                        ':pk_prefix': pk_prefix
                     },
-                    'Limit': limit,
-                    'ScanIndexForward': False  # 역순으로 정렬하여 최신 데이터부터 가져옵니다.
+                    'Limit': limit
                 }
 
                 if last_evaluated_keys.get(category):
-                    query_kwargs['ExclusiveStartKey'] = last_evaluated_keys[category]
+                    scan_kwargs['ExclusiveStartKey'] = last_evaluated_keys[category]
 
-                response = table.query(**query_kwargs)
+                response = table.scan(**scan_kwargs)
                 data = response.get('Items', [])
-                results[category] = sorted(data, key=lambda x: x['ComponentID'], reverse=True)
+                # DATE를 기준으로 정렬하여 최신 데이터부터 가져옵니다.
+                sorted_data = sorted(data, key=lambda x: x['DATE'], reverse=True)
+                results[category] = sorted_data[:limit]
                 new_last_evaluated_keys[category] = response.get('LastEvaluatedKey', None)
 
             return Response({
@@ -69,21 +71,24 @@ class FilteredDataAPIView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class DetailDataAPIView(APIView):
 
+
+
+
+class DetailDataAPIView(APIView):
     def post(self, request):
         data = request.data
-        category = data.get('Category')
-        component_id = data.get('ComponentID')
+        pk = data.get('PK')
+        sk = data.get('SK')
 
-        if not component_id:
-            return Response({'error': 'Component ID is required parameter'}, status=status.HTTP_400_BAD_REQUEST)
+        if not pk or not sk:
+            return Response({'error': 'PK and SK are required parameters'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             response = table.get_item(
                 Key={
-                    'Category': category,
-                    'ComponentID': component_id
+                    'PK': pk,
+                    'SK': sk
                 }
             )
 
