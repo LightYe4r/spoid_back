@@ -15,9 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-AWS_ACCESS_KEY_ID = 'your_access_key_id_here'
-AWS_SECRET_ACCESS_KEY = 'your_secret_access_key_here'
-AWS_REGION_NAME = 'ap-northeast-2'
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
